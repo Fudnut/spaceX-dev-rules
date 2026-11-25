@@ -18,9 +18,9 @@ It applies the ideas from Lauren Tan's talk [All Code Is Slop (Except Mine)](htt
 |---|---|---|
 | `usage/` | Usage-limit tracker for Codex, Claude accounts and Gemini, with fallback rules. See [usage/README.md](usage/README.md). | Done |
 | `source/` | Claude's and Codex's analyses of the talk. The transcript and slides stay local (not published). | Done |
-| `templates/check.ps1` | One command that runs a project's lint, types and tests. | Planned |
-| `templates/FEATURES.md` | Feature map: feature, user path, check command, expected result. | Planned |
-| Instruction block | Short shared text for each project's AGENTS.md and CLAUDE.md: "a correction becomes a check". | Planned |
+| `templates/check.ps1` | One command that runs a project's format, lint, types and tests; stops at the first failure. Extra arguments go to the test command (focused run). | Piloted (File_manager) |
+| `templates/FEATURES.md` | Feature map: feature, user path, check command, expected result. | Piloted (File_manager) |
+| `templates/instruction-block.md` | Short shared text for each project's AGENTS.md and CLAUDE.md: "a correction becomes a check". | Piloted (File_manager) |
 
 ## Agents and roles
 
@@ -43,7 +43,7 @@ Check usage before you call Codex or Gemini: run `usage\usage.ps1` (see [usage/R
 
 ## Next steps
 
-- Pilot `check.ps1` and `FEATURES.md` on one project.
+- Use the templates in a second project, then mark them Done.
 - Settle the fallback order for quota errors (the workers plugin falls back to Sonnet; this kit prefers Gemini first).
 - Move a rule into this kit only after it has worked in a second project.
 
@@ -51,4 +51,5 @@ Check usage before you call Codex or Gemini: run `usage\usage.ps1` (see [usage/R
 
 Newest first.
 
+- **2026-11-25** Piloted the kit on File_manager (Rust): `check.ps1` (fmt, clippy, Linux check, tests; focused-run arguments), `FEATURES.md` with one workflow (F5 copy to the other pane, checked by `cargo test -p fm-app --test feature_copy` on the real file system), and the instruction block in AGENTS.md and CLAUDE.md. The first full run found flaky sound tests (a timing wait and a poisoned test lock); fixed. Generic copies are in `templates/`.
 - **2026-11-25** Read the talk with Codex; wrote both analyses. Added the usage-limit tracker and shared ledger.
