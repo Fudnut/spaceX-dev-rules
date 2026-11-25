@@ -21,16 +21,20 @@ It applies the ideas from Lauren Tan's talk [All Code Is Slop (Except Mine)](htt
 | `templates/check.ps1` | One command that runs a project's format, lint, types and tests; stops at the first failure. Extra arguments go to the test command (focused run). | Piloted (File_manager) |
 | `templates/FEATURES.md` | Feature map: feature, user path, check command, expected result. | Piloted (File_manager) |
 | `templates/instruction-block.md` | Short shared text for each project's AGENTS.md and CLAUDE.md: "a correction becomes a check". | Piloted (File_manager) |
+| `review/` | Code review method for Claude and Codex: blind review, cross-check, approval, one writer, stop at 95%. See [review/METHOD.md](review/METHOD.md). | Draft (pilot: File_manager fm-sfx) |
 
 ## Agents and roles
 
 | Agent | Role |
 |---|---|
 | Claude (4 Pro accounts) | Design, turning corrections into checks, review. |
-| Cheap Agent (DeepSeek Flash) | Code changes. |
-| Gemini Neon / Carbon | Implementation steps; verifier when Codex is at its limit. |
+| Gemini Neon (high) | Default worker for code changes. Verifier when Codex is at its limit. |
+| Gemini Carbon | Code changes when Steve picks it. Verifier when Codex and Neon are at their limits. |
 | Gemini Hydrogen | Mechanical scans and summaries. |
+| Cheap Agent (DeepSeek Flash) | Code changes only when Steve picks it. |
 | Codex (GPT-6.2-Astra, Plus) | Verifier: runs checks and the feature map, reports findings without fixing them. |
+
+**Code changes (from 2026-11-26):** send them through `/workers:use`, not straight to Cheap Agent. The default worker is Neon (`gemini-4-neon-high`). Before the first code change in a session, Claude asks once: Neon (default), Hydrogen, Carbon, or DeepSeek through Cheap Agent. The answer is the session worker until the session ends. The rule is in `~/.claude/CLAUDE.md`, so every new session gets it.
 
 Check usage before you call Codex or Gemini: run `usage\usage.ps1` (see [usage/README.md](usage/README.md)).
 
@@ -50,6 +54,8 @@ Check usage before you call Codex or Gemini: run `usage\usage.ps1` (see [usage/R
 ## Progress log
 
 Newest first.
+
+- **2026-11-26** Added the draft review method for Claude and Codex (`review/`), to pilot on File_manager `fm-sfx`. Made Neon (high) the default worker for code changes through `/workers:use`; each session asks before its first code change. Installed the review tools; cargo-machete is pinned to 0.9.1 because 0.10.1 does not compile on rustc 1.97.1.
 
 - **2026-11-25** Piloted the kit on File_manager (Rust): `check.ps1` (fmt, clippy, Linux check, tests; focused-run arguments), `FEATURES.md` with one workflow (F5 copy to the other pane, checked by `cargo test -p fm-app --test feature_copy` on the real file system), and the instruction block in AGENTS.md and CLAUDE.md. The first full run found flaky sound tests (a timing wait and a poisoned test lock); fixed. Generic copies are in `templates/`.
 - **2026-11-25** Read the talk with Codex; wrote both analyses. Added the usage-limit tracker and shared ledger.
