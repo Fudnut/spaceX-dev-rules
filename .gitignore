@@ -1,0 +1,8 @@
+usage/ledger.json
+.cheapag/
+# Third-party talk material (copyrighted): keep local, do not publish
+source/transcript.json
+source/talk.md
+source/slides/
+source/sheet*.png
+source/codex-log.txt
