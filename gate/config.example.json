@@ -1,0 +1,8 @@
+{
+  "risky": [],
+  "hotPaths": [],
+  "maxDiffLines": 400,
+  "lightMaxLines": 20,
+  "testCommand": ["cargo", "test", "--workspace", "--locked"],
+  "jscpdPaths": ["crates"]
+}
