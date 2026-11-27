@@ -11,6 +11,7 @@ Decisions (Steve, 2026-11-27): Rust only for now. Hard block. Codex is reviewer 
 3. Ratchet. Old debt does not block a commit. A count may go down, never up.
 4. Git enforces it. A pre-commit hook refuses any commit without passing checks and a review stamp for the exact staged content.
 5. Runs anywhere. No fixed paths, accounts or machine names in committed files. Machine settings come from environment variables or a gitignored local file.
+6. Guards fail closed (Steve, 2026-11-27). A guard tool (gate, hook, CI script) blocks the commit when any command it runs fails or gives output it cannot read. Before a guard tool goes into a project, or after a change to it, it gets one review from a model family that did not write it and one test for each way it can fail. The kit itself is not Rust, so its own gate does not do this: do it by hand.
 
 ## Files
 
