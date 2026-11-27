@@ -14,10 +14,17 @@ $ver = git -C $kit rev-parse --short HEAD
 [IO.File]::WriteAllText((Join-Path $sx 'VERSION'), "$ver $(Get-Date -Format 'yyyy-MM-dd')`n")
 
 # Hooks are shell scripts: write them with LF line endings, whatever the kit checkout has.
-foreach ($f in Get-ChildItem (Join-Path $kit 'hooks') -File) {
+$hooks = @(Get-ChildItem (Join-Path $kit 'hooks') -File)
+foreach ($f in $hooks) {
     $dest = Join-Path $hk $f.Name
     [IO.File]::WriteAllText($dest, ((Get-Content -Raw $f.FullName) -replace "`r`n", "`n"))
     if ($IsLinux -or $IsMacOS) { chmod +x $dest }
+}
+git -C $root add .githooks
+if ($LASTEXITCODE -ne 0) { Write-Host 'install: FAILED: git add .githooks failed'; exit 1 }
+foreach ($f in $hooks) {
+    git -C $root update-index --chmod=+x ".githooks/$($f.Name)"
+    if ($LASTEXITCODE -ne 0) { Write-Host "install: FAILED: git update-index --chmod=+x .githooks/$($f.Name) failed"; exit 1 }
 }
 
 # Keep the shims LF in every clone, also with core.autocrlf=true.
@@ -40,4 +47,4 @@ Write-Host "install: gate $ver installed in $root"
 Write-Host 'Next steps:'
 Write-Host '  1. Edit .spacex/config.json: set risky and hotPaths for this project.'
 Write-Host "  2. Add the block from $(Join-Path (Split-Path $kit) 'templates/instruction-block.md') to AGENTS.md and CLAUDE.md."
-Write-Host '  3. Commit .spacex/ and .githooks/.'
+Write-Host '  3. Commit .spacex/, .githooks/ and .gitattributes.'
