@@ -240,7 +240,7 @@ function Invoke-PostCommit {   # the commit already happened: warn, never fail
     Remove-Item $tmp
 }
 
-function Get-TestCrates($pairs) {   # testScope affected: workspace crates whose tests can see the pushed change (pairs of remote sha, local sha), or a string that says why all tests must run
+function Get-TestCrates($pairs) {   # testScope affected: workspace crates whose tests can see the pushed change (pairs of remote sha, local sha) and whether it touches a risky path, or a string that says why all tests must run
     if (@($cfg.testCommand) -notcontains '--workspace') { return 'testCommand has no --workspace to narrow' }
     $files = @()
     foreach ($pr in $pairs) {
@@ -249,8 +249,9 @@ function Get-TestCrates($pairs) {   # testScope affected: workspace crates whose
         $f = @(git -c core.quotepath=off diff --name-only --no-renames $pr[0] $pr[1]); if ($LASTEXITCODE -ne 0) { return "git diff $($pr[0]) $($pr[1]) failed" }
         $files += $f
     }
-    $files = @($files | Where-Object { $_ -ne '.spacex/baseline.json' })   # lint counts only, no test reads it; pre-push rewrites it when counts go down
-    $f = @($files | Where-Object { $_ -match '(^|/)(Cargo\.(toml|lock)|rust-toolchain(\.toml)?)$|^\.(cargo|spacex)/' })
+    $slow = [bool]@($files | Where-Object { $_ -eq '.spacex/config.json' -or (Test-Glob $_ $cfg.risky) }).Count   # config.json may change risky itself
+    $files = @($files | Where-Object { $_ -notlike '.spacex/*' })   # kit files and gate settings: no test reads them
+    $f = @($files | Where-Object { $_ -match '(^|/)(Cargo\.(toml|lock)|rust-toolchain(\.toml)?)$|^\.cargo/' })
     if ($f) { return "$($f[0]) changed" }
     $raw = cargo metadata --no-deps --format-version 1
     if ($LASTEXITCODE -ne 0) { return "cargo metadata exited $LASTEXITCODE" }
@@ -274,7 +275,7 @@ function Get-TestCrates($pairs) {   # testScope affected: workspace crates whose
         $more = @($deps.Keys | Where-Object { -not $hit[$_] -and @($deps[$_] | Where-Object { $hit[$_] }).Count })
         foreach ($n in $more) { $hit[$n] = 1 }
     } while ($more.Count)
-    , @($hit.Keys | Sort-Object)
+    [pscustomobject]@{ crates = @($hit.Keys | Sort-Object); slow = $slow }
 }
 
 function Invoke-PrePush {
@@ -297,11 +298,16 @@ function Invoke-PrePush {
     if ($un.Count) { Fail "commit or stash changes first ($($un -join ', '))" }
     $base = Read-Baseline 'HEAD:.spacex/baseline.json'
     $tc = @($cfg.testCommand)
+    $env:SPACEX_SLOW_TESTS = '1'   # slow tests run unless the push is narrowed to crates and touches no risky path
     if ($scope -eq 'affected') {
         $r = Get-TestCrates $pairs
         if ($r -is [string]) { Write-Host "gate: tests: full, because $r" }
-        elseif (-not $r.Count) { Write-Host 'gate: tests: none, no crate changed'; $tc = @() }
-        else { $tc = @($tc | ForEach-Object { if ($_ -eq '--workspace') { $r | ForEach-Object { '-p'; $_ } } else { $_ } }); Write-Host "gate: tests: changed crates and their dependents: $($tc -join ' ')" }
+        elseif (-not $r.crates.Count) { Write-Host 'gate: tests: none, no crate changed'; $tc = @() }
+        else {
+            $tc = @($tc | ForEach-Object { if ($_ -eq '--workspace') { $r.crates | ForEach-Object { '-p'; $_ } } else { $_ } })
+            if (-not $r.slow) { $env:SPACEX_SLOW_TESTS = $null }
+            Write-Host "gate: tests: changed crates and their dependents, slow tests $(if ($r.slow) { 'on (risky path or config.json changed)' } else { 'off' }): $($tc -join ' ')"
+        }
     }
     if ($tc) {
         Need $tc[0]

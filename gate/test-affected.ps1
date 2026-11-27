@@ -10,7 +10,7 @@ function New-Crate($name, $deps) { Write-File "crates/$name/Cargo.toml" "[packag
 function New-Head($files) { git checkout -q --detach $base; foreach ($f in @($files)) { Write-File $f 'x' }; git add -A; git commit -qm change; git rev-parse HEAD }
 function Test-Case($name, $pairs, $want) {
     $got = Get-TestCrates $pairs
-    $g = if ($got -is [string]) { "full: $got" } elseif (-not $got.Count) { 'none' } else { "test: $($got -join ' ')" }
+    $g = if ($got -is [string]) { "full: $got" } elseif (-not $got.crates.Count) { 'none' } else { "test: $($got.crates -join ' ')" + $(if ($got.slow) { ' +slow' }) }
     if ($g -like $want) { Write-Host "ok   $name" } else { Write-Host "FAIL $name`: got '$g', want '$want'"; $script:fails++ }
 }
 
@@ -41,15 +41,19 @@ Test-Case 'crate Cargo.toml' @(, @($base, (New-Head 'crates/a/Cargo.toml'))) 'fu
 Test-Case 'Cargo.lock' @(, @($base, (New-Head 'Cargo.lock'))) 'full: Cargo.lock changed'
 Test-Case 'rust-toolchain.toml' @(, @($base, (New-Head 'rust-toolchain.toml'))) 'full: rust-toolchain.toml changed'
 Test-Case '.cargo/' @(, @($base, (New-Head '.cargo/config.toml'))) 'full: .cargo/config.toml changed'
-Test-Case '.spacex/' @(, @($base, (New-Head '.spacex/config.json'))) 'full: .spacex/config.json changed'
-Test-Case '.spacex/baseline.json only: no tests' @(, @($base, (New-Head '.spacex/baseline.json'))) 'none'
-Test-Case '.spacex/baseline.json and a crate' @(, @($base, (New-Head '.spacex/baseline.json', 'crates/d/src/lib.rs'))) 'test: d'
+Test-Case '.spacex/ only: no tests' @(, @($base, (New-Head '.spacex/config.json', '.spacex/baseline.json'))) 'none'
+Test-Case '.spacex/ and a crate' @(, @($base, (New-Head '.spacex/gate.ps1', 'crates/d/src/lib.rs'))) 'test: d'
+Test-Case 'config.json and a crate: slow tests on' @(, @($base, (New-Head '.spacex/config.json', 'crates/d/src/lib.rs'))) 'test: d +slow'
 Test-Case '.rs file in no crate' @(, @($base, (New-Head 'tools/gen.rs'))) 'full: tools/gen.rs is in no crate'
 Test-Case 'crate folder prefix is not a match' @(, @($base, (New-Head 'crates/ab/src/x.rs'))) 'full: crates/ab/src/x.rs is in no crate'
 Test-Case 'new branch' @(, @($z, (New-Head 'README.md'))) 'full: new branch'
 $cfg.testCommand = @('cargo', 'nextest', 'run')
 Test-Case 'testCommand without --workspace' @(, @($base, (New-Head 'crates/d/src/lib.rs'))) 'full: testCommand has no --workspace to narrow'
 $cfg.testCommand = $defaults.testCommand
+$cfg.risky = @('crates/d/src/*')
+Test-Case 'risky path: slow tests on' @(, @($base, (New-Head 'crates/d/src/lib.rs'))) 'test: d +slow'
+Test-Case 'no risky path: slow tests off' @(, @($base, (New-Head 'crates/b/src/lib.rs'))) 'test: b c'
+$cfg.risky = @()
 Test-Case 'remote sha unknown here' @(, @(('f' * 40), (New-Head 'README.md'))) 'full: git diff * failed'
 $h = New-Head 'crates/d/src/lib.rs'; Write-File 'crates/d/Cargo.toml' 'not toml ['   # last: leaves the work tree broken
 Test-Case 'cargo metadata fails' @(, @($base, $h)) 'full: cargo metadata exited *'
