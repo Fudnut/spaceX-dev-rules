@@ -23,7 +23,7 @@ $curOs = if ($IsLinux) { 'linux' } elseif ($IsMacOS) { 'macos' } else { 'windows
 # Settings: .spacex/config.json, with these defaults for missing keys.
 $defaults = @{
     risky = @(); hotPaths = @(); maxDiffLines = 400; lightMaxLines = 20
-    testCommand = @('cargo', 'test', '--workspace', '--locked'); jscpdPaths = @('crates')
+    testCommand = @('cargo', 'test', '--workspace', '--locked'); testScope = 'full'; jscpdPaths = @('crates')
 }
 $cfgFile = Join-Path $root '.spacex/config.json'
 $user = $null
@@ -240,9 +240,47 @@ function Invoke-PostCommit {   # the commit already happened: warn, never fail
     Remove-Item $tmp
 }
 
+function Get-TestCrates($pairs) {   # testScope affected: workspace crates whose tests can see the pushed change (pairs of remote sha, local sha), or a string that says why all tests must run
+    if (@($cfg.testCommand) -notcontains '--workspace') { return 'testCommand has no --workspace to narrow' }
+    $files = @()
+    foreach ($pr in $pairs) {
+        if ($pr[1] -match '^0+$') { continue }   # deletion: no code goes out
+        if ($pr[0] -match '^0+$') { return 'new branch' }
+        $f = @(git -c core.quotepath=off diff --name-only --no-renames $pr[0] $pr[1]); if ($LASTEXITCODE -ne 0) { return "git diff $($pr[0]) $($pr[1]) failed" }
+        $files += $f
+    }
+    $f = @($files | Where-Object { $_ -match '(^|/)(Cargo\.(toml|lock)|rust-toolchain(\.toml)?)$|^\.(cargo|spacex)/' })
+    if ($f) { return "$($f[0]) changed" }
+    $raw = cargo metadata --no-deps --format-version 1
+    if ($LASTEXITCODE -ne 0) { return "cargo metadata exited $LASTEXITCODE" }
+    try { $meta = ($raw -join "`n") | ConvertFrom-Json -ErrorAction Stop } catch { return 'cargo metadata gave invalid JSON' }
+    $top = ($root -replace '\\', '/').TrimEnd('/') + '/'
+    $dirs = @{}; $deps = @{}
+    foreach ($pk in @($meta.packages)) {
+        $d = ([IO.Path]::GetDirectoryName($pk.manifest_path) -replace '\\', '/') + '/'
+        if (-not $d.StartsWith($top, 'OrdinalIgnoreCase')) { return "crate $($pk.name) is outside the repository" }
+        $dirs[$pk.name] = $d.Substring($top.Length)   # '' for a crate at the repository root
+        $deps[$pk.name] = @($pk.dependencies | ForEach-Object { $_.name })   # all kinds: normal, dev, build
+    }
+    if (-not $dirs.Count) { return 'cargo metadata lists no crates' }
+    $hit = @{}
+    foreach ($f in $files) {   # a file belongs to the crate with the longest matching folder
+        $best = $null
+        foreach ($n in $dirs.Keys) { if ($f.StartsWith($dirs[$n], 'OrdinalIgnoreCase') -and (-not $best -or $dirs[$n].Length -gt $dirs[$best].Length)) { $best = $n } }
+        if ($best) { $hit[$best] = 1 } elseif ($f -notlike '*.md') { return "$f is in no crate" }   # only docs may sit outside crates
+    }
+    do {   # add the crates that depend on a selected crate, transitively
+        $more = @($deps.Keys | Where-Object { -not $hit[$_] -and @($deps[$_] | Where-Object { $hit[$_] }).Count })
+        foreach ($n in $more) { $hit[$n] = 1 }
+    } while ($more.Count)
+    , @($hit.Keys | Sort-Object)
+}
+
 function Invoke-PrePush {
     $head = git rev-parse HEAD; if ($LASTEXITCODE -ne 0 -or -not $head) { Fail 'git rev-parse HEAD failed' }
-    $code = 0; $notes = 0
+    $scope = [string]$cfg.testScope
+    if ($scope -notin 'full', 'affected') { Fail "config.json testScope must be full or affected, not '$scope'" }
+    $code = 0; $notes = 0; $pairs = @()
     foreach ($l in ([Console]::In.ReadToEnd() -split '\r?\n')) {
         if (-not $l.Trim()) { continue }
         $p = $l.Trim() -split '\s+'
@@ -250,6 +288,7 @@ function Invoke-PrePush {
         if ($p[0] -like 'refs/notes/*' -and $p[2] -like 'refs/notes/*') { $notes++; continue }   # notes hold no code
         $code++
         if ($p[1] -notmatch '^0+$' -and $p[1] -ne $head) { Fail "pre-push checks only the checked-out HEAD; check out $($p[0]) and push it alone" }
+        $pairs += , @($p[3], $p[1])
     }
     if ($notes -and -not $code) { Write-Host 'gate: notes refs only; no tests'; return }
     $st = @(git -c core.quotepath=off status --porcelain --untracked-files=normal); if ($LASTEXITCODE -ne 0) { Fail 'git status failed' }
@@ -257,10 +296,18 @@ function Invoke-PrePush {
     if ($un.Count) { Fail "commit or stash changes first ($($un -join ', '))" }
     $base = Read-Baseline 'HEAD:.spacex/baseline.json'
     $tc = @($cfg.testCommand)
-    Need $tc[0]
-    $exe, $targs = $tc
-    & $exe @targs | Out-Host
-    if ($LASTEXITCODE -ne 0) { Fail "tests failed: $($tc -join ' ')" }
+    if ($scope -eq 'affected') {
+        $r = Get-TestCrates $pairs
+        if ($r -is [string]) { Write-Host "gate: tests: full, because $r" }
+        elseif (-not $r.Count) { Write-Host 'gate: tests: none, no crate changed'; $tc = @() }
+        else { $tc = @($tc | ForEach-Object { if ($_ -eq '--workspace') { $r | ForEach-Object { '-p'; $_ } } else { $_ } }); Write-Host "gate: tests: changed crates and their dependents: $($tc -join ' ')" }
+    }
+    if ($tc) {
+        Need $tc[0]
+        $exe, $targs = $tc
+        & $exe @targs | Out-Host
+        if ($LASTEXITCODE -ne 0) { Fail "tests failed: $($tc -join ' ')" }
+    }
     $dup = Get-Jscpd
     $cur = Get-Counts
     $bad = @(Get-Excess $cur $base)
@@ -276,6 +323,7 @@ function Invoke-PrePush {
     if ($down) { Write-Baseline $new; Write-Host "gate: counts went down: $($down -join '; ')"; Write-Host 'gate: commit .spacex/baseline.json with your next change' }
 }
 
+if ($MyInvocation.InvocationName -eq '.') { return }   # dot-sourced by test-affected.ps1: define the functions only
 switch ($Cmd) {
     'check' { Invoke-Check 'check' $Rest }
     'stamp' { Invoke-Stamp $Rest[0] }

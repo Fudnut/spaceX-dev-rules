@@ -4,5 +4,6 @@
   "maxDiffLines": 400,
   "lightMaxLines": 20,
   "testCommand": ["cargo", "test", "--workspace", "--locked"],
+  "testScope": "full",
   "jscpdPaths": ["crates"]
 }

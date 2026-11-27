@@ -23,7 +23,8 @@ In this kit, `gate/`:
 | `gate.ps1` | One script, subcommands: `check`, `stamp`, `pre-commit`, `commit-msg`, `post-commit`, `pre-push`, `baseline`. |
 | `hooks/*` | 2-line shims (one per hook name) that run `gate.ps1 <hook>`. |
 | `REVIEW.md` | The per-change review steps for agents (the diff version of `review/METHOD.md`). |
-| `config.example.json` | Project settings: risky paths, diff limit, test command, hot-path benches. |
+| `config.example.json` | Project settings: risky paths, diff limit, test command, test scope, hot-path benches. |
+| `test-affected.ps1` | Kit test for `testScope` `affected` (crate mapping and fallbacks). Stays in the kit; `install.ps1` does not copy it. |
 
 In the project: `.spacex/` (kit copy + `VERSION`), `.spacex/config.json`, `.spacex/baseline.json` (committed), `.githooks/`, and a short block in AGENTS.md and CLAUDE.md that points to `.spacex/REVIEW.md`. Instructions live in the repo, so Claude and Codex find them on any account.
 
