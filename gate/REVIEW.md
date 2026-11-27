@@ -95,7 +95,7 @@ Propose a change only if it fixes a bug, or removes code, branches, duplication 
 ## Baseline and pre-push
 
 - `check` and `pre-commit` read the staged `.spacex/baseline.json`; `pre-push` reads `HEAD:.spacex/baseline.json`.
-- `pre-push` checks only the checked-out `HEAD` (check out a branch and push it alone).
+- `pre-push` checks only the checked-out `HEAD` (check out a branch and push it alone). It skips ref lines that push `refs/notes/*` to `refs/notes/*`; a push of only notes refs (for example `git push origin refs/notes/review`) runs no tests. Deleting a notes ref runs the full checks.
 - `pre-push` checks "not higher" (clippy per lint, machete, dependency count, jscpd) on every OS and fails on any increase. It lowers counts and writes `.spacex/baseline.json` only on the OS recorded in `baseline.json` (`os`) when at least one count goes down. A baseline without `os` lowers nothing.
 
 ## Config keys (`.spacex/config.json`)
@@ -124,7 +124,7 @@ Globs are PowerShell `-like` patterns on repo-relative paths with `/`. `*` also 
 | `dependency count` | Remove the new dependency, or add `Dependency-reason:` to the review and stamp again. |
 | `stage or stash unstaged or untracked changes` | The checks must see the staged content. Stage or stash all unstaged and untracked files. |
 | `no review stamp for staged tree` | You changed the staged files after the stamp, or never stamped. Review, then stamp. |
-| `pre-push checks only the checked-out HEAD` | Check out the branch you want to push and push it alone. |
+| `pre-push checks only the checked-out HEAD` | Check out the branch you want to push and push it alone. Push review notes in their own push: `git push origin refs/notes/review`. |
 | `duplicate count (jscpd)` | The push adds duplicates. Remove them. |
 | `tests failed` | Fix the tests before the push. |
 | `... not found` | A tool is missing (cargo-machete, jscpd). Tell Steve. A missing tool is a failure. |

@@ -241,16 +241,20 @@ function Invoke-PostCommit {   # the commit already happened: warn, never fail
 }
 
 function Invoke-PrePush {
-    $st = @(git -c core.quotepath=off status --porcelain --untracked-files=normal); if ($LASTEXITCODE -ne 0) { Fail 'git status failed' }
-    $un = @($st | Where-Object { $_ } | ForEach-Object { $_.Substring(3) } | Where-Object { $_ -ne '.spacex/baseline.json' })
-    if ($un.Count) { Fail "commit or stash changes first ($($un -join ', '))" }
     $head = git rev-parse HEAD; if ($LASTEXITCODE -ne 0 -or -not $head) { Fail 'git rev-parse HEAD failed' }
+    $code = 0; $notes = 0
     foreach ($l in ([Console]::In.ReadToEnd() -split '\r?\n')) {
         if (-not $l.Trim()) { continue }
         $p = $l.Trim() -split '\s+'
-        if ($p.Count -lt 2) { Fail "unexpected pre-push ref line: $l" }
+        if ($p.Count -lt 4) { Fail "unexpected pre-push ref line: $l" }
+        if ($p[0] -like 'refs/notes/*' -and $p[2] -like 'refs/notes/*') { $notes++; continue }   # notes hold no code
+        $code++
         if ($p[1] -notmatch '^0+$' -and $p[1] -ne $head) { Fail "pre-push checks only the checked-out HEAD; check out $($p[0]) and push it alone" }
     }
+    if ($notes -and -not $code) { Write-Host 'gate: notes refs only; no tests'; return }
+    $st = @(git -c core.quotepath=off status --porcelain --untracked-files=normal); if ($LASTEXITCODE -ne 0) { Fail 'git status failed' }
+    $un = @($st | Where-Object { $_ } | ForEach-Object { $_.Substring(3) } | Where-Object { $_ -ne '.spacex/baseline.json' })
+    if ($un.Count) { Fail "commit or stash changes first ($($un -join ', '))" }
     $base = Read-Baseline 'HEAD:.spacex/baseline.json'
     $tc = @($cfg.testCommand)
     Need $tc[0]
