@@ -22,7 +22,7 @@ It applies the ideas from Lauren Tan's talk [All Code Is Slop (Except Mine)](htt
 | `templates/FEATURES.md` | Feature map: feature, user path, check command, expected result. | Piloted (File_manager) |
 | `templates/instruction-block.md` | Short shared text for each project's AGENTS.md and CLAUDE.md: "a correction becomes a check". | Piloted (File_manager) |
 | `review/` | Code review method for Claude and Codex: blind review, cross-check, approval, one writer, stop at 95%. See [review/METHOD.md](review/METHOD.md). | Draft (pilot: File_manager fm-sfx) |
-| `gate/` | Commit gate for Rust projects: tool ratchet (fmt, clippy, machete, deps, jscpd) and two blind model reviews, enforced by git hooks with a stamp tied to the staged tree. See [gate/DESIGN.md](gate/DESIGN.md). | Built; tested on a File_manager clone |
+| `gate/` | Commit gate for Rust projects: tool ratchet (fmt, clippy, machete, deps, jscpd) and two blind model reviews, enforced by git hooks with a stamp tied to the staged tree. How to use it: [gate/USAGE.md](gate/USAGE.md). Design: [gate/DESIGN.md](gate/DESIGN.md). | In use (File_manager) |
 
 ## Agents and roles
 
