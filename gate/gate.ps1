@@ -249,6 +249,7 @@ function Get-TestCrates($pairs) {   # testScope affected: workspace crates whose
         $f = @(git -c core.quotepath=off diff --name-only --no-renames $pr[0] $pr[1]); if ($LASTEXITCODE -ne 0) { return "git diff $($pr[0]) $($pr[1]) failed" }
         $files += $f
     }
+    $files = @($files | Where-Object { $_ -ne '.spacex/baseline.json' })   # lint counts only, no test reads it; pre-push rewrites it when counts go down
     $f = @($files | Where-Object { $_ -match '(^|/)(Cargo\.(toml|lock)|rust-toolchain(\.toml)?)$|^\.(cargo|spacex)/' })
     if ($f) { return "$($f[0]) changed" }
     $raw = cargo metadata --no-deps --format-version 1

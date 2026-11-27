@@ -42,6 +42,8 @@ Test-Case 'Cargo.lock' @(, @($base, (New-Head 'Cargo.lock'))) 'full: Cargo.lock 
 Test-Case 'rust-toolchain.toml' @(, @($base, (New-Head 'rust-toolchain.toml'))) 'full: rust-toolchain.toml changed'
 Test-Case '.cargo/' @(, @($base, (New-Head '.cargo/config.toml'))) 'full: .cargo/config.toml changed'
 Test-Case '.spacex/' @(, @($base, (New-Head '.spacex/config.json'))) 'full: .spacex/config.json changed'
+Test-Case '.spacex/baseline.json only: no tests' @(, @($base, (New-Head '.spacex/baseline.json'))) 'none'
+Test-Case '.spacex/baseline.json and a crate' @(, @($base, (New-Head '.spacex/baseline.json', 'crates/d/src/lib.rs'))) 'test: d'
 Test-Case '.rs file in no crate' @(, @($base, (New-Head 'tools/gen.rs'))) 'full: tools/gen.rs is in no crate'
 Test-Case 'crate folder prefix is not a match' @(, @($base, (New-Head 'crates/ab/src/x.rs'))) 'full: crates/ab/src/x.rs is in no crate'
 Test-Case 'new branch' @(, @($z, (New-Head 'README.md'))) 'full: new branch'
