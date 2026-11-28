@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "$(command -v pwsh || echo powershell)" -NoProfile -ExecutionPolicy Bypass -File "$(git rev-parse --show-toplevel)/.spacex/gate.ps1" pre-push "$@"
