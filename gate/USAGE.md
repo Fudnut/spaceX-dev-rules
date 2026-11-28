@@ -1,5 +1,7 @@
 # Commit gate: how to use it
 
+Retired 2026-11-28 (too slow). Do not install or follow it. Use [../rules/coding.md](../rules/coding.md).
+
 The gate checks every commit in a Rust project before it lands: tool checks (fmt, clippy, machete, dependencies, jscpd), tests, and model reviews of the diff. Design: [DESIGN.md](DESIGN.md). Step-by-step flow for agents: [REVIEW.md](REVIEW.md).
 
 ## Hook or plugin?

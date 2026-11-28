@@ -1,6 +1,6 @@
 # Code review method (Claude + Codex)
 
-Status: in use. Piloted on File_manager, 2026-11-25 to 26: crate `fm-sfx` (merged to `main`), then `fm-model` chunks model-01 to model-06 on `review/fm-model`.
+Status: occasional cleanup of old code, not for each commit (2026-11-28). For new code, use [../rules/coding.md](../rules/coding.md). Piloted on File_manager, 2026-11-25 to 26: crate `fm-sfx`, then `fm-model` chunks model-01 to model-09.
 
 Goal: find logic errors, dead code, duplication and code that can be simpler. Make the code smaller and easier to maintain. Keep behavior the same, unless a change fixes a bug.
 
@@ -44,7 +44,7 @@ Tools are free and exact. The models judge only what tools cannot: logic errors 
 
 ## Steps for each chunk
 
-1. **Budget check (Claude).** Get Codex's numbers from `usage\usage.ps1` and Claude's from the app usage tool. Start the chunk only if used % + the cost of one chunk is 95% or less, for both agents, for the 5-hour and the weekly limit. Until the pilot measures the cost of a chunk, use 10%. Ignore the FALLBACK label in `usage.ps1`; read the numbers.
+1. **Budget check (Claude).** Get Codex's numbers from `usage\usage.ps1` and Claude's from the app usage tool. Claude: start the chunk only if used % + the cost of one chunk is 95% or less, for the 5-hour and the weekly limit. Codex: before each Codex run, start it only if used % + the cost of that run is 98% or less, for the 5-hour and the weekly limit. If it does not fit, pause the chunk until that limit resets, then resume at that run. Measured 5-hour cost: review and check about 20% together, diff about 7%; use 11% for a review or check run. Ignore the FALLBACK label in `usage.ps1`; read the numbers.
 2. **Blind review, in parallel.** Claude starts the Codex "review" run in the background, then writes `<chunk>.claude.md`. Neither reads the other's findings until both are done.
 3. **Cross-check.** The Codex "check" run gives verdicts on Claude's findings. Claude adds verdicts on Codex's findings to `<chunk>.claude.md`. Verdicts: CONFIRMED, REJECTED (reason, `file:line`) or DISPUTED (both arguments). Only findings that both agents confirm go to Steve, plus disputed findings, marked as such.
 4. **Approval.** Steve approves by ID ("approve sfx-01-C2, sfx-01-X1"). Claude records it in `STATE.md`.
@@ -71,7 +71,7 @@ Propose a change only if it fixes a bug, or removes code, branches, duplication 
 
 ## Stop and resume
 
-- **Stop** when Codex or Claude reaches 95% (5-hour or weekly), when the next chunk does not fit (step 1), or when Steve says stop.
+- **Stop** when Claude reaches 95% or Codex 98% (5-hour or weekly), when the next chunk or Codex run does not fit (step 1), or when Steve says stop.
 - **Checkpoints.** Claude writes `STATE.md`. Every Codex run ends with a checkpoint, so Codex's checkpoint is always current, also when its limit stops it. If a Codex run ends without its output file, repeat that step.
 - **Resume** only on Steve's OK. Claude reads `STATE.md`, does step 1, then starts the next Codex run with Codex's newest output file. Each Codex run is new and starts from the files; no Codex process waits between runs.
 - **Sessions.** Start a fresh Claude session for each crate, or after 3 to 5 chunks: "Continue the File_manager review. Read `F:\AI_Projects_4\SpaceX_Dev_Rules\review\METHOD.md` and `docs/review/STATE.md`."

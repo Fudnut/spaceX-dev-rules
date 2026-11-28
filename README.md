@@ -6,6 +6,7 @@ It applies the ideas from Lauren Tan's talk [All Code Is Slop (Except Mine)](htt
 
 ## Core ideas
 
+- **Quality at the source.** A good brief and short coding rules ([rules/coding.md](rules/coding.md)) give lean code at the first attempt. Only changes that can reach user data get a model review.
 - **Every correction becomes a check.** When you correct an agent, add a lint rule, a test or an API change. Do not add another line to CLAUDE.md.
 - **Code is memory.** Agents copy what is in the repo. Block new copies of a bad pattern with a rule, then clean up the old ones.
 - **Spend effort top-down** (the "trust pyramid"): codebase design > static checks > runtime verification > prose rules > human review.
@@ -16,13 +17,14 @@ It applies the ideas from Lauren Tan's talk [All Code Is Slop (Except Mine)](htt
 
 | Path | What it is | Status |
 |---|---|---|
+| `rules/coding.md` | Briefs, coding rules, checks and review by consequence. Each computer's `~/.claude/CLAUDE.md` imports it. | In use (2026-11-28) |
 | `usage/` | Usage-limit tracker for Codex, Claude accounts and Gemini, with fallback rules. See [usage/README.md](usage/README.md). | Done |
 | `source/` | Claude's and Codex's analyses of the talk. The transcript and slides stay local (not published). | Done |
-| `templates/check.ps1` | One command that runs a project's format, lint, types and tests; stops at the first failure. Extra arguments go to the test command (focused run). | Piloted (File_manager) |
+| `templates/check.ps1` | One command that runs a project's format and lint, then the given tests (focused run), or the whole suite with `-Full`; stops at the first failure. | Piloted (File_manager) |
 | `templates/FEATURES.md` | Feature map: feature, user path, check command, expected result. | Piloted (File_manager) |
 | `templates/instruction-block.md` | Short shared text for each project's AGENTS.md and CLAUDE.md: "a correction becomes a check". | Piloted (File_manager) |
-| `review/` | Code review method for Claude and Codex: blind review, cross-check, approval, one writer, stop at 95%. See [review/METHOD.md](review/METHOD.md). | Draft (pilot: File_manager fm-sfx) |
-| `gate/` | Commit gate for Rust projects: tool ratchet (fmt, clippy, machete, deps, jscpd) and two blind model reviews, enforced by git hooks with a stamp tied to the staged tree. How to use it: [gate/USAGE.md](gate/USAGE.md). Design: [gate/DESIGN.md](gate/DESIGN.md). | In use (File_manager) |
+| `review/` | Code review method for Claude and Codex: blind review, cross-check, approval, one writer, stop at 95%. See [review/METHOD.md](review/METHOD.md). | Occasional cleanup of old code, not for each commit |
+| `gate/` | Commit gate for Rust projects: tool ratchet and two blind model reviews, enforced by git hooks. | Retired 2026-11-28: too slow (5 commits took over 5 hours). Do not install. |
 
 ## Agents and roles
 
@@ -45,8 +47,16 @@ Check usage before you call Codex or Gemini: run `usage\usage.ps1` (see [usage/R
    - Desktop PC: `[Environment]::SetEnvironmentVariable('AI_USAGE_LEDGER', 'Z:\AI-Development\SpaceX_Dev_Rules\usage\ledger.json', 'User')`
    - Laptop: `[Environment]::SetEnvironmentVariable('AI_USAGE_LEDGER', 'C:\AI-Development\SpaceX_Dev_Rules\usage\ledger.json', 'User')`
 2. Get the kit: clone this repo. On the laptop, the folder already holds the ledger, so use `git init`, `git remote add origin https://github.com/Fudnut/spaceX-dev-rules.git` and `git pull origin master` instead.
+3. Add these two lines to `~/.claude/CLAUDE.md`, with this computer's kit path (desktop: `F:/AI_Projects_4/SpaceX_Dev_Rules`, laptop: `C:/AI-Development/SpaceX_Dev_Rules`), not in backticks, so Claude Code imports the file:
+   ```
+   ## Writing code
+   @<kit path>/rules/coding.md
+   ```
 
 ## Next steps
+
+- Apply `rules/coding.md` to File_manager (laptop checkout): remove the commit gate (`.spacex/`, `.githooks/`, `git config --unset core.hooksPath`), make `check.ps1` match `templates/check.ps1`, rewrite AGENTS.md as one model-role table plus the project-only rules (Fixture, TestVolume, portable app copy, settings version, glossary, the risky paths from `.spacex/config.json` as a hint list), and remove the generic Rust style section from CLAUDE.md.
+- Add the import line to the laptop's `~/.claude/CLAUDE.md` (Setup step 3).
 
 - Use the templates in a second project, then mark them Done.
 - Settle the fallback order for quota errors (the workers plugin falls back to Sonnet; this kit prefers Gemini first).
@@ -55,6 +65,8 @@ Check usage before you call Codex or Gemini: run `usage\usage.ps1` (see [usage/R
 ## Progress log
 
 Newest first.
+
+- **2026-11-28** Retired the commit gate. On File_manager, 5 UI commits took over 5 hours: each one got two blind reviews, a cross-check, fix re-checks, a final review, a stamp and the same tool runs two or three times, with 16 to 37 findings per commit. New approach in `rules/coding.md`: a brief that names the code to reuse and the real failure cases, short writer rules (smallest change, reuse, no dead code, no comments, real-use cases only, few tests), focused checks, and one review only for changes that can reach user data. Codex `gpt-6.2-astra` high reviewed the draft ("adopt with changes"); its changes are in.
 
 - **2026-11-26** Added the draft review method for Claude and Codex (`review/`), to pilot on File_manager `fm-sfx`. Made Neon (high) the default worker for code changes through `/workers:use`; each session asks before its first code change. Installed the review tools; cargo-machete is pinned to 0.9.1 because 0.10.1 does not compile on rustc 1.97.1.
 
