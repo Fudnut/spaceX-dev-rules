@@ -1,5 +1,7 @@
 # Commit gate: review steps for one change
 
+Retired 2026-11-28 (too slow). Do not install or follow it. Use [../rules/coding.md](../rules/coding.md).
+
 Applies to every commit in a project that has `.spacex/`. This is the per-change version of the kit's `review/METHOD.md`.
 
 ## Rule

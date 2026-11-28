@@ -1,5 +1,7 @@
 # Commit gate: design (approved by Steve, 2026-11-27)
 
+Retired 2026-11-28 (too slow). Do not install or follow it. Use [../rules/coding.md](../rules/coding.md).
+
 Goal: every commit in a Rust project is checked and reviewed before it lands, so no codebase ever needs a full after-the-fact review again. Checks: logic, bloat, function simplicity, duplication, dead code, unused dependencies, speed. First project: File_manager (bug fixes from release testing).
 
 Decisions (Steve, 2026-11-27): Rust only for now. Hard block. Codex is reviewer A; if Codex is not available, another model takes its place. Pilot: File_manager.

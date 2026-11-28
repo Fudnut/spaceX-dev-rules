@@ -1,6 +1,6 @@
 # Code review method (Claude + Codex)
 
-Status: in use. Piloted on File_manager, 2026-11-25 to 26: crate `fm-sfx` (merged to `main`), then `fm-model` chunks model-01 to model-06 on `review/fm-model`.
+Status: occasional cleanup of old code, not for each commit (2026-11-28). For new code, use [../rules/coding.md](../rules/coding.md). Piloted on File_manager, 2026-11-25 to 26: crate `fm-sfx`, then `fm-model` chunks model-01 to model-09.
 
 Goal: find logic errors, dead code, duplication and code that can be simpler. Make the code smaller and easier to maintain. Keep behavior the same, unless a change fixes a bug.
 
