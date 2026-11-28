@@ -55,9 +55,6 @@ Check usage before you call Codex or Gemini: run `usage\usage.ps1` (see [usage/R
 
 ## Next steps
 
-- Apply `rules/coding.md` to File_manager (laptop checkout): remove the commit gate (`.spacex/`, `.githooks/`, `git config --unset core.hooksPath`), make `check.ps1` match `templates/check.ps1`, rewrite AGENTS.md as one model-role table plus the project-only rules (Fixture, TestVolume, portable app copy, settings version, glossary, the risky paths from `.spacex/config.json` as a hint list), and remove the generic Rust style section from CLAUDE.md.
-- Add the import line to the laptop's `~/.claude/CLAUDE.md` (Setup step 3).
-
 - Use the templates in a second project, then mark them Done.
 - Settle the fallback order for quota errors (the workers plugin falls back to Sonnet; this kit prefers Gemini first).
 - Move a rule into this kit only after it has worked in a second project.
@@ -66,7 +63,7 @@ Check usage before you call Codex or Gemini: run `usage\usage.ps1` (see [usage/R
 
 Newest first.
 
-- **2026-11-28** Retired the commit gate. On File_manager, 5 UI commits took over 5 hours: each one got two blind reviews, a cross-check, fix re-checks, a final review, a stamp and the same tool runs two or three times, with 16 to 37 findings per commit. New approach in `rules/coding.md`: a brief that names the code to reuse and the real failure cases, short writer rules (smallest change, reuse, no dead code, no comments, real-use cases only, few tests), focused checks, and one review only for changes that can reach user data. Codex `gpt-6.2-astra` high reviewed the draft ("adopt with changes"); its changes are in.
+- **2026-11-28** Retired the commit gate. On File_manager, 5 UI commits took over 5 hours: each one got two blind reviews, a cross-check, fix re-checks, a final review, a stamp and the same tool runs two or three times, with 16 to 37 findings per commit. New approach in `rules/coding.md`: a brief that names the code to reuse and the real failure cases, short writer rules (smallest change, reuse, no dead code, no comments, real-use cases only, few tests), focused checks, and one review only for changes that can reach user data. Codex `gpt-6.2-astra` high reviewed the draft ("adopt with changes"); its changes are in. Applied to File_manager: removed `.spacex/` and `.githooks/`; `check.ps1` runs no tests without arguments and the whole suite plus the slow wipe tests with `-Full`; AGENTS.md is one role table plus the project safety rules (40 lines, was 50 dense ones), and CLAUDE.md imports it instead of repeating it. Both computers' `~/.claude/CLAUDE.md` import `rules/coding.md`.
 
 - **2026-11-26** Added the draft review method for Claude and Codex (`review/`), to pilot on File_manager `fm-sfx`. Made Neon (high) the default worker for code changes through `/workers:use`; each session asks before its first code change. Installed the review tools; cargo-machete is pinned to 0.9.1 because 0.10.1 does not compile on rustc 1.97.1.
 
